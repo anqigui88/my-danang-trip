@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>岘港 2026 行程与预算规划可视化</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #FDFBF7; /* Warm neutral background */
+            color: #4A4A4A;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .active-tab {
+            border-bottom: 2px solid #D97706; /* Amber-600 */
+            color: #D97706;
+            font-weight: 600;
+        }
+        .timeline-line {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: #E5E7EB;
+            transform: translateX(-50%);
+            z-index: 0;
+        }
+    </style>
+    <!-- Chosen Palette: Warm Neutrals (Sand, Cream, Stone) with Subtle Amber and Teal Accents for specific zones -->
+    <!-- Application Structure Plan:
+        1. Hero Section: Trip Context (Dates: Feb 18-23, 2026, Budget: 10k RMB).
+        2. Dashboard/Overview: Interactive breakdown of the 4 key zones (City, Nature, Culture, Modern).
+        3. Strategic Itinerary Planner: A timeline/flow view connecting the geography to the schedule (East, South, West lines).
+        4. Budget & Villa Calculator: Interactive tool to calculate remaining budget for accommodation after estimated daily expenses, visualized with Chart.js.
+        5. Attraction Deep Dive: Filterable grid of all specific spots mentioned in the report.
+    -->
+    <!-- Visualization & Content Choices:
+        1. Budget Distribution (Doughnut Chart): Goal -> Inform/Plan. Shows how the 10,000 RMB splits between projected spending and remaining villa budget.
+        2. Zone Explorer (Interactive Cards): Goal -> Organize. Users click zones (East, West, South, Center) to see relevant attractions.
+        3. Itinerary Flow (Vertical Timeline): Goal -> Change/Guide. Visualizes the specific "Afternoon start" for South route vs "Full day" for West route.
+        4. Confirming NO SVG/Mermaid. All icons are Unicode or CSS shapes. Charts via Chart.js.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="antialiased selection:bg-orange-100 selection:text-orange-900">
+
+    <!-- Navigation / Header -->
+    <header class="w-full bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <span class="text-2xl">🇻🇳</span>
+                <h1 class="text-xl font-bold text-gray-800 tracking-tight">岘港探索 <span class="text-amber-600">2026</span></h1>
+            </div>
+            <nav class="hidden md:flex space-x-8 text-sm font-medium text-gray-600">
+                <a href="#zones" class="hover:text-amber-600 transition-colors">区域探索</a>
+                <a href="#itinerary" class="hover:text-amber-600 transition-colors">建议行程</a>
+                <a href="#budget" class="hover:text-amber-600 transition-colors">预算规划</a>
+            </nav>
+            <div class="md:hidden text-gray-500">
+                <!-- Mobile menu placeholder icon (Unicode) -->
+                <span class="text-xl">☰</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-16">
+
+        <!-- Section 1: Trip Overview & Context -->
+        <section class="text-center space-y-4">
+            <h2 class="text-3xl md:text-4xl font-bold text-gray-900">您的岘港别墅度假之旅</h2>
+            <p class="max-w-2xl mx-auto text-lg text-gray-600 leading-relaxed">
+                基于 2026年2月18日 - 2月23日 的五晚行程。
+                本页面将帮助您规划 <span class="font-semibold text-amber-700">10,000 RMB</span> 总预算内的最佳路线与住宿分配。
+            </p>
+            <div class="flex flex-wrap justify-center gap-4 mt-6">
+                <div class="bg-white px-6 py-3 rounded-full shadow-sm border border-gray-200 flex items-center gap-2">
+                    <span>📅</span>
+                    <span class="font-medium text-gray-700">2026/2/18 - 2/23</span>
+                </div>
+                <div class="bg-white px-6 py-3 rounded-full shadow-sm border border-gray-200 flex items-center gap-2">
+                    <span>💰</span>
+                    <span class="font-medium text-gray-700">预算: 10,000 RMB</span>
+                </div>
+                <div class="bg-white px-6 py-3 rounded-full shadow-sm border border-gray-200 flex items-center gap-2">
+                    <span>🏡</span>
+                    <span class="font-medium text-gray-700">目标: 别墅/民宿</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Geographic Zone Explorer -->
+        <section id="zones" class="space-y-6">
+            <div class="border-l-4 border-amber-500 pl-4">
+                <h3 class="text-2xl font-bold text-gray-900">📍 景点地理分布</h3>
+                <p class="text-gray-600 mt-1">点击下方卡片，查看岘港四大核心区域的标志性景点。</p>
+            </div>
+
+            <!-- Grid Layout for Zones -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Zone 1: City Center -->
+                <button onclick="updateZone('city')" class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-left transition-all card-hover group focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="text-3xl bg-blue-50 p-2 rounded-lg">🏙️</span>
+                        <span class="text-xs font-bold px-2 py-1 bg-gray-100 rounded text-gray-500">市区江岸</span>
+                    </div>
+                    <h4 class="text-lg font-bold text-gray-800 group-hover:text-amber-600">标志性地标</h4>
+                    <p class="text-sm text-gray-500 mt-2">龙桥、大教堂、韩江游船、博物馆</p>
+                </button>
+
+                <!-- Zone 2: Nature/Coast -->
+                <button onclick="updateZone('nature')" class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-left transition-all card-hover group focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="text-3xl bg-green-50 p-2 rounded-lg">🏖️</span>
+                        <span class="text-xs font-bold px-2 py-1 bg-gray-100 rounded text-gray-500">沿海/山地</span>
+                    </div>
+                    <h4 class="text-lg font-bold text-gray-800 group-hover:text-amber-600">自然美景与圣地</h4>
+                    <p class="text-sm text-gray-500 mt-2">美溪海滩、山茶半岛、五行山</p>
+                </button>
+
+                <!-- Zone 3: Culture South -->
+                <button onclick="updateZone('culture')" class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-left transition-all card-hover group focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="text-3xl bg-amber-50 p-2 rounded-lg">🏮</span>
+                        <span class="text-xs font-bold px-2 py-1 bg-gray-100 rounded text-gray-500">南部周边</span>
+                    </div>
+                    <h4 class="text-lg font-bold text-gray-800 group-hover:text-amber-600">文化沉淀</h4>
+                    <p class="text-sm text-gray-500 mt-2">会安古镇、迦南岛椰林</p>
+                </button>
+
+                <!-- Zone 4: Modern West -->
+                <button onclick="updateZone('modern')" class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-left transition-all card-hover group focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="text-3xl bg-purple-50 p-2 rounded-lg">🚠</span>
+                        <span class="text-xs font-bold px-2 py-1 bg-gray-100 rounded text-gray-500">西部山区</span>
+                    </div>
+                    <h4 class="text-lg font-bold text-gray-800 group-hover:text-amber-600">现代奇观</h4>
+                    <p class="text-sm text-gray-500 mt-2">巴拿山、佛手桥</p>
+                </button>
+            </div>
+
+            <!-- Dynamic Detail Area -->
+            <div id="zone-detail-container" class="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100 transition-all duration-300">
+                <div class="flex flex-col md:flex-row gap-8">
+                    <div class="md:w-1/3">
+                        <h3 id="detail-title" class="text-2xl font-bold text-gray-900 mb-2">选择一个区域</h3>
+                        <p id="detail-desc" class="text-gray-600">点击上方卡片查看该区域的具体景点详情与游玩建议。</p>
+                        <div id="detail-tip" class="mt-4 p-4 bg-amber-50 rounded-lg text-amber-800 text-sm hidden">
+                            <!-- JS populates this -->
+                        </div>
+                    </div>
+                    <div class="md:w-2/3">
+                        <div id="attraction-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- JS populates this -->
+                            <div class="border border-dashed border-gray-300 rounded-lg p-8 text-center text-gray-400">
+                                👆 请点击上方类别查看详情
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Strategic Itinerary Planner -->
+        <section id="itinerary" class="space-y-6">
+            <div class="border-l-4 border-teal-500 pl-4">
+                <h3 class="text-2xl font-bold text-gray-900">🗺️ 建议行程路线</h3>
+                <p class="text-gray-600 mt-1">基于地理位置的最优时间分配方案。建议将住宿定在<b>美溪海滩</b>周边。</p>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <!-- Tabs -->
+                <div class="flex border-b border-gray-100 overflow-x-auto">
+                    <button onclick="updateItinerary('east')" id="tab-east" class="flex-1 py-4 px-6 text-center text-sm font-medium hover:bg-gray-50 active-tab transition-colors whitespace-nowrap">
+                        🌊 东部海滨 (住宿基地)
+                    </button>
+                    <button onclick="updateItinerary('south')" id="tab-south" class="flex-1 py-4 px-6 text-center text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors whitespace-nowrap">
+                        🏮 南部线路 (下午出发)
+                    </button>
+                    <button onclick="updateItinerary('west')" id="tab-west" class="flex-1 py-4 px-6 text-center text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors whitespace-nowrap">
+                        🏔️ 西部线路 (全天)
+                    </button>
+                </div>
+
+                <!-- Content -->
+                <div class="p-6 md:p-10 min-h-[400px]">
+                    <div id="itinerary-content" class="animate-fade-in">
+                        <!-- Content injected via JS -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: Budget & Accommodation Calculator -->
+        <section id="budget" class="space-y-6 pb-12">
+            <div class="border-l-4 border-emerald-500 pl-4">
+                <h3 class="text-2xl font-bold text-gray-900">💰 预算与住宿计算器</h3>
+                <p class="text-gray-600 mt-1">总预算 10,000 RMB。输入您的预计日常花销，计算每晚可承担的别墅/民宿价格。</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                <!-- Controls -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">预计每日餐饮/交通/门票 (RMB/天)</label>
+                        <input type="range" id="dailySpend" min="200" max="1500" step="50" value="600" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600">
+                        <div class="flex justify-between text-sm text-gray-500 mt-1">
+                            <span>200 (穷游)</span>
+                            <span id="dailySpendValue" class="font-bold text-emerald-700">600 RMB</span>
+                            <span>1500 (奢华)</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 p-4 rounded-lg space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span>总预算:</span>
+                            <span class="font-bold">10,000 RMB</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>行程天数:</span>
+                            <span>6 天 (5 晚)</span>
+                        </div>
+                        <div class="flex justify-between text-gray-500">
+                            <span>预估非住宿总支出:</span>
+                            <span id="totalMiscCost">3,600 RMB</span>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-gray-200 pt-4">
+                        <h4 class="text-lg font-bold text-gray-800 mb-2">🏠 剩余住宿预算</h4>
+                        <div class="flex items-end gap-2">
+                            <span id="nightlyBudget" class="text-4xl font-bold text-emerald-600">1,280</span>
+                            <span class="text-gray-500 mb-1">RMB / 晚</span>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-2">
+                            以此预算，您可以在美溪海滩周边寻找 <span id="hotelTier" class="font-semibold text-emerald-700">高档海景公寓或联排别墅</span>。
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Chart Visualization -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
+                    <h4 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">预算分配预览</h4>
+                    <div class="chart-container">
+                        <canvas id="budgetChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-gray-900 text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 text-center space-y-4">
+            <h2 class="text-2xl font-bold">岘港之旅 2026</h2>
+            <p class="text-gray-400 text-sm max-w-lg mx-auto">
+                建议：把民宿定在美溪海滩周边，享受慢节奏海生活。利用上述工具规划您的专属行程。
+            </p>
+            <div class="pt-8 border-t border-gray-800 text-xs text-gray-500">
+                Generated based on Source Report • Single Page Application
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // --- DATA STORE ---
+        const attractionData = {
+            city: {
+                title: "标志性地标 (市区江岸)",
+                desc: "岘港的心脏地带，融合了历史与现代灯光秀。",
+                tip: "💡 晚间消遣首选区域，特别是周末的龙桥喷火表演。",
+                spots: [
+                    { name: "龙桥 (Dragon Bridge)", tags: ["夜景", "表演"], detail: "喷火表演地，连接市区两岸的标志性建筑。" },
+                    { name: "岘港大教堂", tags: ["拍照", "历史"], detail: "粉红教堂，适合下午阳光充足时拍照，法式哥特风格。" },
+                    { name: "韩江游船", tags: ["休闲", "夜游"], detail: "码头位于市区江边，夜晚欣赏两岸灯光的最佳方式。" },
+                    { name: "占婆雕刻博物馆", tags: ["历史", "文化"], detail: "位于龙桥头，拥有世界上最大的占婆石雕收藏。" }
+                ]
+            },
+            nature: {
+                title: "自然美景与圣地 (沿海/山地)",
+                desc: "享受绵延的白沙滩与灵性的山海景色。",
+                tip: "💡 建议住宿定在美溪海滩周边，方便每日享受海边晨跑或散步。",
+                spots: [
+                    { name: "美溪海滩", tags: ["海滩", "住宿"], detail: "绵延数公里的白沙滩，众多别墅和民宿分布于此。" },
+                    { name: "山茶半岛 & 灵应寺", tags: ["风景", "佛教"], detail: "位于市区东北角，巨大的观音像面向大海。" },
+                    { name: "五行山", tags: ["探险", "宗教"], detail: "通往会安的半路上，不仅有山洞庙宇，还可乘直梯上山。" }
+                ]
+            },
+            culture: {
+                title: "文化沉淀 (南部周边)",
+                desc: "体验越南古老的贸易港口与水乡风情。",
+                tip: "💡 必走路线：下午五行山 -> 迦南岛 -> 晚间会安古镇。",
+                spots: [
+                    { name: "会安古镇", tags: ["夜景", "美食"], detail: "距离市区30公里，晚上的灯笼展必看，充满历史韵味。" },
+                    { name: "迦南岛/椰林", tags: ["体验", "自然"], detail: "体验独特的簸箕船，穿梭在水椰林中。" }
+                ]
+            },
+            modern: {
+                title: "现代奇观 (西部山区)",
+                desc: "云端之上的娱乐天堂，避暑胜地。",
+                tip: "💡 需要预留一整天时间，山上气温较低，记得带外套。",
+                spots: [
+                    { name: "巴拿山", tags: ["一日游", "乐园"], detail: "全家出游核心目的地，拥有世界最长缆车之一。" },
+                    { name: "佛手桥", tags: ["打卡", "建筑"], detail: "巴拿山上的标志性景点，巨手托起金桥，极为震撼。" }
+                ]
+            }
+        };
+
+        const itineraryData = {
+            east: {
+                title: "🌊 东部海滨：慢生活基地",
+                subtitle: "建议住宿区域",
+                content: `
+                    <div class="space-y-6">
+                        <div class="flex items-start gap-4">
+                            <div class="bg-blue-100 p-3 rounded-full text-blue-600 font-bold shrink-0">07:00</div>
+                            <div>
+                                <h5 class="font-bold text-gray-800">清晨海滩漫步</h5>
+                                <p class="text-gray-600 text-sm">美溪海滩看日出，享受宁静的早晨。</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-4">
+                            <div class="bg-blue-100 p-3 rounded-full text-blue-600 font-bold shrink-0">16:00</div>
+                            <div>
+                                <h5 class="font-bold text-gray-800">午后休闲</h5>
+                                <p class="text-gray-600 text-sm">在海边的咖啡馆休息，或下海游泳。这里是您这几天的“家”。</p>
+                            </div>
+                        </div>
+                        <div class="mt-4 p-4 bg-blue-50 rounded text-sm text-blue-800 border border-blue-100">
+                            <strong>为何住这里？</strong> 位置居中，往南去会安，往西去巴拿山，往北去山茶半岛都很方便。
+                        </div>
+                    </div>
+                `
+            },
+            south: {
+                title: "🏮 南部线路：文化与自然",
+                subtitle: "半日游 (15:00 - 21:00)",
+                content: `
+                    <div class="space-y-6 relative">
+                         <!-- Vertical Line -->
+                        <div class="absolute left-[26px] top-4 bottom-4 w-0.5 bg-gray-200 z-0"></div>
+
+                        <div class="flex items-center gap-4 relative z-10">
+                            <div class="bg-amber-100 w-14 h-14 flex items-center justify-center rounded-full text-amber-700 font-bold shrink-0 text-sm">15:00</div>
+                            <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex-1">
+                                <h5 class="font-bold text-gray-800">出发 & 五行山</h5>
+                                <p class="text-gray-600 text-sm">乘坐直梯上山，探索洞穴与寺庙，俯瞰海岸线。</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center gap-4 relative z-10">
+                            <div class="bg-amber-100 w-14 h-14 flex items-center justify-center rounded-full text-amber-700 font-bold shrink-0 text-sm">16:30</div>
+                            <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex-1">
+                                <h5 class="font-bold text-gray-800">迦南岛椰林</h5>
+                                <p class="text-gray-600 text-sm">体验著名的旋转簸箕船（Basket Boat），充满乐趣。</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-4 relative z-10">
+                            <div class="bg-amber-100 w-14 h-14 flex items-center justify-center rounded-full text-amber-700 font-bold shrink-0 text-sm">18:00</div>
+                            <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex-1">
+                                <h5 class="font-bold text-gray-800">会安古镇</h5>
+                                <p class="text-gray-600 text-sm">晚餐享用当地美食（高楼面/白玫瑰），欣赏灯笼夜景，放河灯。</p>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+            west: {
+                title: "🏔️ 西部线路：云端漫步",
+                subtitle: "全日游 (09:00 - 17:00)",
+                content: `
+                    <div class="space-y-6">
+                        <div class="p-4 bg-purple-50 rounded-lg border border-purple-100 mb-4">
+                            <span class="font-bold text-purple-700">提示：</span> 山上气温比市区低 5-10度，请携带薄外套。
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                                <div class="text-purple-600 font-bold mb-1">上午</div>
+                                <h5 class="font-bold text-gray-800">缆车 & 佛手桥</h5>
+                                <p class="text-sm text-gray-600">体验吉尼斯纪录的长缆车，第一时间打卡金桥（佛手桥），避开人流。</p>
+                            </div>
+                            <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                                <div class="text-purple-600 font-bold mb-1">中午</div>
+                                <h5 class="font-bold text-gray-800">法式村庄 & 自助餐</h5>
+                                <p class="text-sm text-gray-600">在山顶的法式古堡区域拍照，享用丰盛的自助午餐。</p>
+                            </div>
+                            <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-100 md:col-span-2">
+                                <div class="text-purple-600 font-bold mb-1">下午</div>
+                                <h5 class="font-bold text-gray-800">幻想乐园 (Fantasy Park)</h5>
+                                <p class="text-sm text-gray-600">室内游乐场，适合全家游玩，体验跳楼机和4D电影。</p>
+                            </div>
+                        </div>
+                    </div>
+                `
+            }
+        };
+
+        // --- CORE LOGIC ---
+
+        // 1. Zone Logic
+        function updateZone(zoneKey) {
+            const data = attractionData[zoneKey];
+            const titleEl = document.getElementById('detail-title');
+            const descEl = document.getElementById('detail-desc');
+            const tipEl = document.getElementById('detail-tip');
+            const listEl = document.getElementById('attraction-list');
+
+            // Fade out effect simulation (simple replacement)
+            titleEl.textContent = data.title;
+            descEl.textContent = data.desc;
+            
+            if(data.tip) {
+                tipEl.textContent = data.tip;
+                tipEl.classList.remove('hidden');
+            } else {
+                tipEl.classList.add('hidden');
+            }
+
+            // Generate Cards
+            listEl.innerHTML = data.spots.map(spot => `
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-amber-300 transition-colors">
+                    <div class="flex justify-between items-start mb-2">
+                        <h5 class="font-bold text-gray-800">${spot.name}</h5>
+                        <div class="flex gap-1">
+                            ${spot.tags.map(t => `<span class="text-[10px] uppercase font-bold bg-white px-2 py-1 rounded text-gray-500 border border-gray-100">${t}</span>`).join('')}
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-600">${spot.detail}</p>
+                </div>
+            `).join('');
+        }
+
+        // 2. Itinerary Logic
+        function updateItinerary(routeKey) {
+            // Update Tabs
+            ['east', 'south', 'west'].forEach(k => {
+                const btn = document.getElementById(`tab-${k}`);
+                if (k === routeKey) {
+                    btn.classList.add('active-tab');
+                    btn.classList.remove('text-gray-500');
+                    btn.classList.add('text-amber-600');
+                } else {
+                    btn.classList.remove('active-tab');
+                    btn.classList.remove('text-amber-600');
+                    btn.classList.add('text-gray-500');
+                }
+            });
+
+            // Update Content
+            const container = document.getElementById('itinerary-content');
+            const data = itineraryData[routeKey];
+            
+            container.innerHTML = `
+                <h4 class="text-xl font-bold text-gray-800 mb-1">${data.title}</h4>
+                <p class="text-sm text-gray-500 mb-6 uppercase tracking-wide font-semibold">${data.subtitle}</p>
+                ${data.content}
+            `;
+        }
+
+        // 3. Budget Logic
+        let budgetChart = null;
+        
+        function initBudgetCalc() {
+            const totalBudget = 10000;
+            const days = 6;
+            const nights = 5;
+            
+            const slider = document.getElementById('dailySpend');
+            const display = document.getElementById('dailySpendValue');
+            const miscTotalDisplay = document.getElementById('totalMiscCost');
+            const nightlyDisplay = document.getElementById('nightlyBudget');
+            const tierDisplay = document.getElementById('hotelTier');
+            const ctx = document.getElementById('budgetChart').getContext('2d');
+
+            function updateCalc() {
+                const dailySpend = parseInt(slider.value);
+                display.textContent = `${dailySpend} RMB`;
+
+                const totalMisc = dailySpend * days;
+                miscTotalDisplay.textContent = `${totalMisc.toLocaleString()} RMB`;
+
+                const remaining = totalBudget - totalMisc;
+                const nightly = Math.max(0, Math.floor(remaining / nights));
+
+                nightlyDisplay.textContent = nightly.toLocaleString();
+
+                // Determine Tier
+                let tier = "";
+                let color = "";
+                if (nightly < 300) { tier = "经济型民宿/青旅"; color = "text-red-500"; }
+                else if (nightly < 800) { tier = "舒适型公寓/酒店"; color = "text-orange-500"; }
+                else if (nightly < 1500) { tier = "高档海景公寓或联排别墅"; color = "text-emerald-700"; }
+                else { tier = "奢华独栋别墅"; color = "text-purple-700"; }
+                
+                tierDisplay.textContent = tier;
+                tierDisplay.className = `font-semibold ${color}`;
+
+                // Update Chart
+                const chartData = [totalMisc, remaining];
+                if (budgetChart) {
+                    budgetChart.data.datasets[0].data = chartData;
+                    budgetChart.update();
+                } else {
+                    budgetChart = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['餐饮/交通/门票', '住宿预算 (5晚)'],
+                            datasets: [{
+                                data: chartData,
+                                backgroundColor: ['#E5E7EB', '#059669'],
+                                borderWidth: 0,
+                                hoverOffset: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: {
+                                        font: { family: "'Noto Sans SC', sans-serif" },
+                                        usePointStyle: true,
+                                        padding: 20
+                                    }
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            let label = context.label || '';
+                                            if (label) { label += ': '; }
+                                            if (context.parsed !== null) {
+                                                label += context.parsed.toLocaleString() + ' RMB';
+                                            }
+                                            return label;
+                                        }
+                                    }
+                                }
+                            },
+                            cutout: '65%'
+                        }
+                    });
+                }
+            }
+
+            slider.addEventListener('input', updateCalc);
+            updateCalc(); // Init
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // Load initial states
+            updateZone('city');
+            updateItinerary('east');
+            initBudgetCalc();
+        });
+
+    </script>
+</body>
+</html>
