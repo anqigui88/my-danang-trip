@@ -602,6 +602,11 @@
             // 初始化
             updateCalc(); 
         }
+     window.onload = function() {
+            initBudgetCalc();   // 启动预算图表
+            updateZone('city'); // 加载初始区域详情
+            updateItinerary('east'); // 加载初始行程详情
+        };
 
     </script>
 </body>
