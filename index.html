@@ -221,6 +221,18 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
                 <!-- Controls -->
                 <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-6">
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">✈️ 往返机票总预算 (所有人数)</label>
+                        <input type="range" id="flightCost" min="0" max="15000" step="100" value="4000" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                        <div class="flex justify-between text-sm text-gray-500 mt-1">
+                            <span>0 (已买/兑换)</span>
+                            <span id="flightCostValue" class="font-bold text-blue-700">4,000 RMB</span>
+                            <span>15,000</span>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-1">*注：HK-岘港往返平时约 1000-4000 RMB/人</p>
+                    </div>
+
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">预计每日餐饮/交通/门票 (RMB/天)</label>
                         <input type="range" id="dailySpend" min="200" max="1500" step="50" value="600" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600">
@@ -486,38 +498,56 @@
             const days = 6;
             const nights = 5;
             
-            const slider = document.getElementById('dailySpend');
-            const display = document.getElementById('dailySpendValue');
+            // 获取 DOM 元素
+            const flightSlider = document.getElementById('flightCost'); // 新增
+            const flightDisplay = document.getElementById('flightCostValue'); // 新增
+            
+            const dailySlider = document.getElementById('dailySpend');
+            const dailyDisplay = document.getElementById('dailySpendValue');
+            
             const miscTotalDisplay = document.getElementById('totalMiscCost');
             const nightlyDisplay = document.getElementById('nightlyBudget');
             const tierDisplay = document.getElementById('hotelTier');
             const ctx = document.getElementById('budgetChart').getContext('2d');
 
             function updateCalc() {
-                const dailySpend = parseInt(slider.value);
-                display.textContent = `${dailySpend} RMB`;
+                // 1. 获取数值
+                const flightTotal = parseInt(flightSlider.value);
+                const dailySpend = parseInt(dailySlider.value);
 
-                const totalMisc = dailySpend * days;
-                miscTotalDisplay.textContent = `${totalMisc.toLocaleString()} RMB`;
+                // 2. 更新文字显示
+                flightDisplay.textContent = `${flightTotal.toLocaleString()} RMB`;
+                dailyDisplay.textContent = `${dailySpend} RMB`;
 
-                const remaining = totalBudget - totalMisc;
-                const nightly = Math.max(0, Math.floor(remaining / nights));
+                // 3. 核心计算
+                const totalDailyMisc = dailySpend * days; // 餐饮交通总额
+                const totalNonRoom = flightTotal + totalDailyMisc; // 机票 + 杂费
+                
+                // 更新“预估非住宿总支出”文字
+                miscTotalDisplay.textContent = `${totalNonRoom.toLocaleString()} RMB`;
+
+                // 计算剩余给住宿的钱
+                const remainingForRoom = totalBudget - totalNonRoom;
+                // 确保不出现负数
+                const nightly = Math.max(0, Math.floor(remainingForRoom / nights));
 
                 nightlyDisplay.textContent = nightly.toLocaleString();
 
-                // Determine Tier
+                // 4. 判断住宿档次
                 let tier = "";
                 let color = "";
-                if (nightly < 300) { tier = "经济型民宿/青旅"; color = "text-red-500"; }
+                if (remainingForRoom <= 0) { tier = "预算不足！请减少机票或日常开销"; color = "text-red-600"; }
+                else if (nightly < 300) { tier = "经济型民宿/青旅"; color = "text-red-500"; }
                 else if (nightly < 800) { tier = "舒适型公寓/酒店"; color = "text-orange-500"; }
                 else if (nightly < 1500) { tier = "高档海景公寓或联排别墅"; color = "text-emerald-700"; }
-                else { tier = "奢华独栋别墅"; color = "text-purple-700"; }
+                else { tier = "奢华独栋别墅 (可能有私人泳池)"; color = "text-purple-700"; }
                 
                 tierDisplay.textContent = tier;
                 tierDisplay.className = `font-semibold ${color}`;
 
-                // Update Chart
-                const chartData = [totalMisc, remaining];
+                // 5. 更新图表 (分为3部分：机票、日常、住宿)
+                const chartData = [flightTotal, totalDailyMisc, Math.max(0, remainingForRoom)];
+                
                 if (budgetChart) {
                     budgetChart.data.datasets[0].data = chartData;
                     budgetChart.update();
@@ -525,10 +555,11 @@
                     budgetChart = new Chart(ctx, {
                         type: 'doughnut',
                         data: {
-                            labels: ['餐饮/交通/门票', '住宿预算 (5晚)'],
+                            labels: ['机票总预算', '餐饮交通杂费', '剩余住宿预算'],
                             datasets: [{
                                 data: chartData,
-                                backgroundColor: ['#E5E7EB', '#059669'],
+                                // 蓝色代表机票，灰色代表杂费，绿色代表住宿
+                                backgroundColor: ['#3B82F6', '#9CA3AF', '#059669'], 
                                 borderWidth: 0,
                                 hoverOffset: 4
                             }]
@@ -558,23 +589,19 @@
                                     }
                                 }
                             },
-                            cutout: '65%'
+                            cutout: '60%'
                         }
                     });
                 }
             }
 
-            slider.addEventListener('input', updateCalc);
-            updateCalc(); // Init
+            // 监听两个滑块的变动
+            flightSlider.addEventListener('input', updateCalc);
+            dailySlider.addEventListener('input', updateCalc);
+            
+            // 初始化
+            updateCalc(); 
         }
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            // Load initial states
-            updateZone('city');
-            updateItinerary('east');
-            initBudgetCalc();
-        });
 
     </script>
 </body>
