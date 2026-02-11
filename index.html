@@ -602,11 +602,13 @@
             // 初始化
             updateCalc(); 
         }
-     window.onload = function() {
-            initBudgetCalc();   // 启动预算图表
-            updateZone('city'); // 加载初始区域详情
-            updateItinerary('east'); // 加载初始行程详情
-        };
+
+        // 1. 启动预算计算器（这会让图表显示出来）
+        initBudgetCalc();
+        // 2. 初始化默认显示的区域（避免页面加载时详情区是空的）
+        updateZone('city');
+        // 3. 初始化默认行程（避免行程区是空的）
+        updateItinerary('east');
 
     </script>
 </body>
